@@ -1,0 +1,5 @@
+CLAUDE.local.md
+.env
+.env.local
+.env.production
+node_modules/
