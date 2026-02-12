@@ -28,7 +28,8 @@ Contexte du projet : @project.md
 | Skill | Usage |
 |-------|-------|
 | `/init-project` | Initialise le projet : lit project.md, crée les issues GitHub |
-| `/next-feature` | Dépile la prochaine US avec le workflow complet |
+| `/forge` | **Team Lead** : décompose une US, délègue, gère les feedback loops, livre stable |
+| `/next-feature` | Pipeline linéaire simple (pour les features simples) |
 | `/architect` | Planifie l'architecture d'une feature |
 | `/developer` | Implémente une feature |
 | `/tester` | Écrit et lance les tests |
@@ -54,9 +55,11 @@ gh pr view <numero>                # Détail d'une PR
 ## Workflow
 
 1. `/init-project` — Crée les issues GitHub depuis project.md
-2. `/next-feature` — Pour chaque US (par priorité) :
-   create branch → push remote → in-progress → implement (rebase régulier) → stabilize → rebase final → push → PR → done → clean context
+2. `/forge` — Pour chaque US (par priorité) :
+   analyse → décompose → délègue aux agents → feedback loops → stabilize → PR → done → clean context
 3. Répète 2 jusqu'à ce que toutes les US soient done
+
+> `/next-feature` reste disponible comme alternative linéaire pour les features simples.
 
 ## Stratégie Git
 

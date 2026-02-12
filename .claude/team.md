@@ -92,3 +92,15 @@ Chaque agent a un rôle précis. On les active selon la feature en cours.
 2. L'**architect** intervient TOUJOURS en premier quand il est assigné
 3. Le **developer** est TOUJOURS présent
 4. L'ordre d'exécution suit l'ordre du tableau d'assignation
+
+## Orchestration : `/forge` vs `/next-feature`
+
+| | `/next-feature` | `/forge` |
+|---|---|---|
+| **Modèle** | Pipeline linéaire | Team Lead avec feedback loops |
+| **Décomposition** | US entière → agents séquentiels | US → sous-tâches → agents ciblés |
+| **Feedback** | Aucun (si test échoue, stabilizer corrige) | Boucles dev↔test, dev↔reviewer, stabilizer retry |
+| **Décision** | Ordre fixe depuis issue body | Team Lead adapte selon les résultats |
+| **Quand l'utiliser** | Features simples, pipeline rapide | Features complexes, besoin de qualité |
+
+**Recommandation** : utilise `/forge` par défaut. `/next-feature` reste disponible pour les cas simples.

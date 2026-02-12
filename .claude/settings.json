@@ -47,7 +47,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Setup Claude Code chargé. Skills disponibles : /architect, /developer, /tester, /reviewer, /stabilizer, /init-project, /next-feature'",
+            "command": "echo 'Setup Claude Code chargé. Skills disponibles : /forge, /init-project, /next-feature, /architect, /developer, /tester, /reviewer, /stabilizer'",
             "timeout": 5
           }
         ]
