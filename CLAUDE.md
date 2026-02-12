@@ -13,6 +13,7 @@ Contexte du projet : @project.md
 - **YOU MUST** faire des commits au format `type(scope): description` (ex: `feat(publicapi): add pagination`)
 - **YOU MUST** nommer les branches au format `type/scope/description-courte` (ex: `feat/dashboard/add-filters`)
 - **YOU MUST** nommer les PR au format `type(scope): description` (même format que les commits)
+- **YOU MUST NOT** faire de `git push` — commit uniquement, l'utilisateur push manuellement
 
 ## Skills disponibles
 
