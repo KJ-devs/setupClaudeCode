@@ -7,8 +7,8 @@ user-invocable: true
 Tu dépiles la prochaine feature. Suis le workflow séquentiel.
 
 ## État actuel
-!`gh issue list --label "task" --json number,title,labels --jq '.[] | "[#\(.number)] \(.title) [\(.labels | map(.name) | join(", "))]"' 2>/dev/null || echo "Impossible de lister les issues"`
-!`gh issue list --label "in-progress" --json number,title --jq '.[] | "[#\(.number)] \(.title) — EN COURS"' 2>/dev/null || echo ""`
+!`gh issue list --label "in-progress" --json number,title --jq '.[] | "[#\(.number)] \(.title) — EN COURS"' 2>/dev/null || echo "Aucune US en cours"`
+!`bash scripts/check-us-eligibility.sh --list 2>/dev/null || echo "Script check-us-eligibility.sh non trouvé"`
 !`git branch --show-current 2>/dev/null`
 
 ## Équipe agentique
@@ -26,30 +26,33 @@ Tu dépiles la prochaine feature. Suis le workflow séquentiel.
 - S'il y a une issue `in-progress`, reprends-la d'abord
 
 **Sinon, choisir la prochaine US éligible :**
-1. Liste toutes les issues avec le label `task`
-2. Pour chaque issue, lis le body et vérifie la section **Dépendances** :
-   - `après:US-XX` → Vérifie que l'issue US-XX a le label `done`. Si non → **skip cette US**
-   - `partage:US-XX` → Vérifie que l'issue US-XX n'est pas `in-progress`. Si oui → **skip cette US**
-   - `enrichit:US-XX` → Vérifie que US-XX est `done` ou `in-progress` (mais pas `task`). Si `task` → **skip**
-3. Parmi les US éligibles, prends celle de **priorité la plus haute** (haute → moyenne → basse)
-4. À priorité égale, prends celle avec le **numéro US le plus bas**
-5. Si aucune US n'est éligible (toutes bloquées), affiche le graphe de blocage et demande à l'utilisateur
+
+**YOU MUST** lancer le script de vérification AVANT de prendre une US :
 
 ```bash
-# Vérifier les dépendances d'une US avant de la prendre
-# 1. Lire le body de l'issue candidate
-gh issue view <numero> --json body --jq '.body'
-
-# 2. Chercher les US mentionnées dans "Bloquée par"
-# 3. Vérifier leur statut
-gh issue view <numero-dep> --json labels --jq '.labels[].name'
-# Si "done" est présent → dépendance satisfaite ✓
-# Si "done" est absent → dépendance non satisfaite ✗ → skip cette US
+# Lister les US éligibles (triées par priorité, dépendances vérifiées automatiquement)
+bash scripts/check-us-eligibility.sh --list
 ```
+
+Le script vérifie automatiquement :
+- `après:US-XX` → US-XX doit avoir le label `done`
+- `partage:US-XX` → US-XX ne doit PAS être `in-progress`
+- `enrichit:US-XX` → US-XX doit être au moins `in-progress`
+
+Prends la **première US recommandée** par le script. Si le script dit "Aucune US disponible" → demande à l'utilisateur.
+
+**Avant de démarrer, confirmer l'éligibilité de l'US choisie :**
+
+```bash
+# Vérification individuelle (exit code 0 = OK, 1 = bloquée)
+bash scripts/check-us-eligibility.sh <numero-issue>
+```
+
+**YOU MUST NOT** démarrer une US si ce script retourne un code d'erreur (exit 1).
 
 **Si une US est bloquée :**
 ```bash
-# Marquer comme bloquée si toutes les US de même priorité sont bloquées
+# Marquer comme bloquée
 gh issue edit <numero> --add-label "blocked"
 # La reprendre automatiquement quand ses dépendances seront Done
 ```

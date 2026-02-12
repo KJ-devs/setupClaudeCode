@@ -18,6 +18,8 @@ Contexte du projet : @project.md
 - **YOU MUST** créer une PR via `gh pr create` après stabilisation
 - **YOU MUST** lancer `bash scripts/stability-check.sh` AVANT tout push
 - **YOU MUST** re-lancer le stability check APRÈS chaque rebase
+- **YOU MUST** vérifier l'éligibilité d'une US avant de la démarrer (`bash scripts/check-us-eligibility.sh <numero>`)
+- **YOU MUST NOT** démarrer une US dont les dépendances ne sont pas satisfaites
 - **YOU MUST NOT** merger une PR si le stability check échoue
 - **YOU MUST NOT** utiliser `git push --force` — utilise `--force-with-lease` uniquement
 
@@ -42,6 +44,8 @@ npm run lint                       # Lint
 npx tsc --noEmit                   # Type check
 bash scripts/stability-check.sh    # Check complet de stabilité
 bash scripts/pre-merge-check.sh    # Vérification pré-merge d'une branche
+bash scripts/check-us-eligibility.sh --list     # US éligibles (dépendances vérifiées)
+bash scripts/check-us-eligibility.sh <numero>   # Vérifier une US spécifique
 gh issue list                      # Voir les issues
 gh pr list                         # Voir les PRs ouvertes
 gh pr view <numero>                # Détail d'une PR
