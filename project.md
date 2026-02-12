@@ -39,11 +39,29 @@ src/
 ## User Stories
 
 <!-- Liste tes US ici. Le setup les créera en issues GitHub. -->
-<!-- Format : - [US-XX] Titre | Description courte | Priorité (haute/moyenne/basse) -->
+<!-- Format : - [US-XX] Titre | Description courte | Priorité (haute/moyenne/basse) | Dépendances (optionnel) -->
+<!-- Les dépendances sont optionnelles. Si une US dépend d'autres US, liste-les séparées par des virgules. -->
 
 - [US-01] Titre de la feature | Description courte | haute
-- [US-02] Titre de la feature | Description courte | moyenne
+- [US-02] Titre de la feature | Description courte | moyenne | après:US-01
 - [US-03] Titre de la feature | Description courte | basse
+
+## Carte des dépendances
+
+<!-- Cette section est auto-générée par /init-project si des dépendances existent. -->
+<!-- Tu peux aussi la remplir manuellement pour plus de clarté. -->
+<!-- Format : US-XX → US-YY signifie "US-XX doit être terminée avant US-YY" -->
+
+```
+US-01 ──→ US-02        (US-02 dépend de US-01)
+US-03                   (indépendante)
+```
+
+<!-- Types de relations entre US :
+  - après:US-XX        → dépendance stricte (US-XX doit être Done avant de commencer)
+  - partage:US-XX      → même scope / fichiers partagés (traiter séquentiellement, pas en parallèle)
+  - enrichit:US-XX     → étend une feature existante (peut commencer sur la branche de US-XX si pas encore mergée)
+-->
 
 ## Critères de stabilité
 

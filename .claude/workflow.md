@@ -32,9 +32,24 @@ Cela garantit :
 
 ## Détail de chaque étape
 
-### 1. Pick next US
+### 1. Pick next US (sélection intelligente)
 
-- Prends la prochaine US par priorité (haute → moyenne → basse)
+- S'il y a une US `in-progress`, reprends-la en priorité
+- Sinon, sélectionne la prochaine US éligible :
+  1. Liste les issues avec label `task`
+  2. Pour chaque issue, lis la section **Dépendances** dans le body
+  3. Vérifie que toutes les dépendances sont satisfaites (voir règles ci-dessous)
+  4. Prends la première US éligible par priorité (haute → moyenne → basse)
+  5. À priorité égale, prends celle avec le numéro US le plus bas
+
+**Règles de dépendances :**
+| Type | Condition pour démarrer |
+|------|------------------------|
+| `après:US-XX` | US-XX doit avoir le label `done` |
+| `partage:US-XX` | US-XX ne doit PAS être `in-progress` |
+| `enrichit:US-XX` | US-XX doit être `done` ou `in-progress` (pas `task`) |
+
+- Si aucune US n'est éligible → afficher le graphe de blocage et demander à l'utilisateur
 - Lis la description complète de l'issue GitHub
 - Comprends le scope et les critères d'acceptance
 
@@ -199,48 +214,98 @@ Format du résumé :
 - **Status** : Done ✓
 ```
 
-## Optimisation multi-US : Pipeline parallèle
+## Gestion intelligente des US liées
 
-Quand plusieurs US sont indépendantes (pas de dépendances entre elles), on peut optimiser le pipeline en parallélisant certaines étapes :
+### Types de dépendances
 
-### Règles de parallélisation
+Les US dans `project.md` peuvent déclarer 3 types de relations :
+
+| Relation | Syntaxe dans project.md | Signification | Impact |
+|----------|------------------------|---------------|--------|
+| Dépendance stricte | `après:US-XX` | A besoin du code de US-XX | Attendre que US-XX soit **Done** |
+| Scope partagé | `partage:US-XX` | Mêmes fichiers modifiés | Ne pas travailler **en même temps** |
+| Extension | `enrichit:US-XX` | Ajoute des fonctionnalités | Peut commencer quand US-XX est **en cours ou Done** |
+
+### Exemple concret
 
 ```
-US-01 (haute) ──[implement]──[stabilize]──[PR ready]──
-                                                       ↘
-US-02 (haute) ──────────[implement]──[stabilize]──[PR ready]──
-                                                              ↘
-US-03 (moyenne) ──────────────[implement]──[stabilize]──[PR ready]──
+project.md :
+- [US-01] Auth utilisateur | Système de login/register | haute
+- [US-02] Dashboard | Page dashboard avec stats | haute | après:US-01
+- [US-03] API publique | Endpoints REST | moyenne
+- [US-04] Profil utilisateur | Page profil | moyenne | après:US-01, partage:US-02
+- [US-05] Export CSV | Export des données | basse | enrichit:US-03
+```
+
+Graphe résultant :
+```
+US-01 ──→ US-02
+  │           │
+  │           └─ partage ─→ US-04
+  └──────────────────────→ US-04
+US-03 ←── enrichit ── US-05
+```
+
+Ordre d'exécution optimal :
+```
+1. US-01 (haute, racine)     ← démarre en premier
+2. US-03 (moyenne, racine)   ← peut être parallélisée avec US-01 (scopes différents)
+3. US-02 (haute, après:01)   ← démarre quand US-01 est Done
+4. US-05 (basse, enrichit:03)← démarre quand US-03 est en cours ou Done
+5. US-04 (moyenne, après:01 + partage:02) ← démarre quand US-01 Done ET US-02 pas en cours
+```
+
+### Contexte partagé entre US liées
+
+Quand une US dépend d'une autre, l'agent DOIT :
+
+1. **Lire le résumé de l'US précédente** — dans le body de l'issue fermée ou CLAUDE.local.md
+2. **Comprendre ce qui a été construit** — quels fichiers, interfaces, conventions
+3. **Construire dessus** — utiliser les types, services et patterns déjà en place
+4. **Vérifier la non-régression** — les tests de l'US précédente doivent toujours passer
+
+### Déblocage en cascade
+
+Quand une US passe en `done` :
+
+```bash
+# 1. Marquer comme done
+gh issue edit <numero> --add-label "done" --remove-label "in-progress"
+gh issue close <numero>
+
+# 2. Identifier les US débloquées
+# Chercher les issues qui référencent cette US dans leurs dépendances
+# Si toutes leurs dépendances sont maintenant satisfaites → les rendre éligibles
+
+# 3. Retirer le label "blocked" des US débloquées
+gh issue edit <numero-debloquee> --remove-label "blocked"
+```
+
+### Optimisation du pipeline
+
+```
+US-01 (haute) ──[implement]──[stabilize]──[PR ready]──[Done]
+                                                         │
+US-03 (moyenne, indép.) ──[implement]──[stabilize]──[PR] │ ← parallèle
+                                                         ↓
+US-02 (haute, après:01) ──────────[implement]──[stabilize]──[PR ready]
 ```
 
 1. **Une seule US en implémentation active** — le developer travaille sur une US à la fois
 2. **Les PR des US précédentes peuvent être en review** pendant que la suivante est en cours
-3. **Le rebase se fait dans l'ordre** — chaque branche rebase sur main après que la PR précédente est mergée
-
-### Quand paralléliser
-
-- **OUI** : US indépendantes (scopes différents, pas de fichiers partagés)
-- **NON** : US avec dépendances (US-02 dépend de US-01)
-- **ATTENTION** : Si deux US modifient les mêmes fichiers, les traiter séquentiellement
-
-### Gestion des dépendances inter-US
-
-```bash
-# Vérifier si la branche US-02 dépend de US-01 :
-# Si oui, US-02 doit attendre que US-01 soit mergée dans main
-# Si non, US-02 peut démarrer en parallèle sur sa propre branche
-```
+3. **Les US indépendantes avancent en parallèle** (PR en review pendant l'implémentation de la suivante)
+4. **Les US bloquées attendent** — pas de hack, pas de workaround
 
 ### Stratégie de rebase en cascade
 
-Si plusieurs branches sont en cours :
+Quand une PR est mergée et que des branches en cours dépendent du nouveau code :
 
 ```bash
 # Après le merge de US-01 dans main :
 git checkout main
 git pull --rebase origin main
 
-# Rebase US-02 sur le nouveau main
+# Rebase les branches qui dépendent de US-01
 git checkout feat/scope/us-02
 git rebase origin/main
 bash scripts/stability-check.sh  # Re-vérifier la stabilité !

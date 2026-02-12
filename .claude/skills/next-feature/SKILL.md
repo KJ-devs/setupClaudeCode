@@ -20,10 +20,39 @@ Tu dépiles la prochaine feature. Suis le workflow séquentiel.
 
 ## Workflow pour la prochaine feature
 
-### 1. Sélectionner la prochaine US
-- Prends la première issue avec le label `task` (priorité haute d'abord)
+### 1. Sélectionner la prochaine US (sélection intelligente)
+
+**Reprendre une US en cours :**
 - S'il y a une issue `in-progress`, reprends-la d'abord
-- Vérifie les dépendances : si l'US dépend d'une autre US non terminée, prends la suivante
+
+**Sinon, choisir la prochaine US éligible :**
+1. Liste toutes les issues avec le label `task`
+2. Pour chaque issue, lis le body et vérifie la section **Dépendances** :
+   - `après:US-XX` → Vérifie que l'issue US-XX a le label `done`. Si non → **skip cette US**
+   - `partage:US-XX` → Vérifie que l'issue US-XX n'est pas `in-progress`. Si oui → **skip cette US**
+   - `enrichit:US-XX` → Vérifie que US-XX est `done` ou `in-progress` (mais pas `task`). Si `task` → **skip**
+3. Parmi les US éligibles, prends celle de **priorité la plus haute** (haute → moyenne → basse)
+4. À priorité égale, prends celle avec le **numéro US le plus bas**
+5. Si aucune US n'est éligible (toutes bloquées), affiche le graphe de blocage et demande à l'utilisateur
+
+```bash
+# Vérifier les dépendances d'une US avant de la prendre
+# 1. Lire le body de l'issue candidate
+gh issue view <numero> --json body --jq '.body'
+
+# 2. Chercher les US mentionnées dans "Bloquée par"
+# 3. Vérifier leur statut
+gh issue view <numero-dep> --json labels --jq '.labels[].name'
+# Si "done" est présent → dépendance satisfaite ✓
+# Si "done" est absent → dépendance non satisfaite ✗ → skip cette US
+```
+
+**Si une US est bloquée :**
+```bash
+# Marquer comme bloquée si toutes les US de même priorité sont bloquées
+gh issue edit <numero> --add-label "blocked"
+# La reprendre automatiquement quand ses dépendances seront Done
+```
 
 ### 2. Créer la branche feature
 
@@ -149,16 +178,55 @@ git pull --rebase origin main
 
 Utilise `/compact` avec ce résumé pour nettoyer le contexte avant la prochaine feature.
 
-## Gestion multi-US : Optimisation du pipeline
+## Gestion intelligente des US liées
+
+### Comprendre les relations entre US
+
+Avant de commencer une US, **lis toujours la section Dépendances** de l'issue GitHub. Les relations déterminent l'ordre de travail :
+
+| Relation | Ce que ça veut dire | Quand commencer |
+|----------|---------------------|-----------------|
+| `après:US-XX` | Cette US a besoin du code de US-XX | Quand US-XX est **Done** (label `done`) |
+| `partage:US-XX` | Mêmes fichiers modifiés | Quand US-XX n'est **PAS** en cours (`in-progress`) |
+| `enrichit:US-XX` | Ajoute des fonctionnalités à US-XX | Quand US-XX est **Done** ou **en cours** |
+
+### Sélection automatique : algorithme
+
+```
+POUR chaque US avec label "task" (triées par priorité puis par numéro) :
+  LIRE le body de l'issue
+  SI section "Dépendances" contient "Aucune" :
+    → US éligible ✓
+  SINON :
+    POUR chaque dépendance :
+      SI type = "après" ET US-dépendance n'a PAS label "done" :
+        → US non éligible ✗ (skip)
+      SI type = "partage" ET US-dépendance a label "in-progress" :
+        → US non éligible ✗ (skip)
+      SI type = "enrichit" ET US-dépendance a label "task" :
+        → US non éligible ✗ (skip)
+  PRENDRE la première US éligible
+```
+
+### Optimisation du pipeline multi-US
 
 Quand plusieurs US indépendantes se suivent :
 
 1. **La PR de US-N peut être en attente de review** pendant que US-N+1 est en cours
 2. **Après le merge de US-N**, rebase US-N+1 sur main et re-vérifier la stabilité
-3. **Si deux US touchent les mêmes fichiers** → les traiter strictement en séquence
-4. **Toujours vérifier main après un merge** :
+3. **Si deux US ont `partage:` entre elles** → les traiter strictement en séquence
+4. **Débloquer les US en cascade** : quand US-N passe en `done`, les US qui dépendent d'elle deviennent éligibles
+5. **Toujours vérifier main après un merge** :
    ```bash
    git checkout main
    git pull --rebase origin main
    bash scripts/stability-check.sh
    ```
+
+### Contexte partagé entre US liées
+
+Quand une US `enrichit` ou est `après` une autre US :
+- **Lis le résumé de l'US précédente** (dans le body de l'issue fermée ou dans CLAUDE.local.md)
+- **Comprends ce qui a été construit** : quels fichiers, quelles interfaces, quelles conventions
+- **Construis dessus** au lieu de réinventer — utilise les types, services et patterns déjà en place
+- **Vérifie que les tests de l'US précédente passent toujours** après ton implémentation

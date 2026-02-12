@@ -1,5 +1,5 @@
 #!/bin/bash
-# create-issues.sh — Crée les issues GitHub depuis project.md
+# create-issues.sh — Crée les issues GitHub depuis project.md avec support des dépendances
 # Usage: bash scripts/create-issues.sh
 
 set -euo pipefail
@@ -41,34 +41,112 @@ echo ""
 echo "Lecture des User Stories depuis $PROJECT_FILE..."
 echo ""
 
+# Tableaux associatifs pour stocker les numéros d'issues créées
+declare -A issue_numbers
+declare -A us_titles
+declare -A us_descs
+declare -A us_priorities
+declare -A us_deps
+us_order=()
+
 count=0
 
+# Premier pass : parser toutes les US et leurs dépendances
 while IFS= read -r line; do
-  # Match lines like: - [US-XX] Titre | Description | Priorité
-  if [[ "$line" =~ ^-\ \[US-([0-9]+)\]\ (.+)\ \|\ (.+)\ \|\ (.+)$ ]]; then
+  # Match lines with optional dependencies: - [US-XX] Titre | Description | Priorité | Deps
+  if [[ "$line" =~ ^-\ \[US-([0-9]+)\]\ (.+)\ \|\ (.+)\ \|\ ([^|]+)(\|\ (.+))?$ ]]; then
     us_num="${BASH_REMATCH[1]}"
-    us_title="${BASH_REMATCH[2]}"
-    us_desc="${BASH_REMATCH[3]}"
-    us_priority="${BASH_REMATCH[4]}"
+    us_title=$(echo "${BASH_REMATCH[2]}" | xargs)
+    us_desc=$(echo "${BASH_REMATCH[3]}" | xargs)
+    us_priority=$(echo "${BASH_REMATCH[4]}" | xargs)
+    us_dep=$(echo "${BASH_REMATCH[6]:-}" | xargs)
 
-    # Trim whitespace
-    us_title=$(echo "$us_title" | xargs)
-    us_desc=$(echo "$us_desc" | xargs)
-    us_priority=$(echo "$us_priority" | xargs)
+    us_titles["$us_num"]="$us_title"
+    us_descs["$us_num"]="$us_desc"
+    us_priorities["$us_num"]="$us_priority"
+    us_deps["$us_num"]="$us_dep"
+    us_order+=("$us_num")
+    count=$((count + 1))
+  fi
+done < "$PROJECT_FILE"
 
-    echo "Création de l'issue: [US-$us_num] $us_title"
+if [ "$count" -eq 0 ]; then
+  echo "Aucune US trouvée dans $PROJECT_FILE."
+  echo "Format attendu:"
+  echo "  - [US-XX] Titre | Description | Priorité"
+  echo "  - [US-XX] Titre | Description | Priorité | après:US-YY"
+  exit 0
+fi
 
-    # Lire l'équipe assignée depuis le tableau dans project.md
-    team_line=$(grep -E "^\| US-0?$us_num " "$PROJECT_FILE" || echo "")
-    agents=""
-    if [ -n "$team_line" ]; then
-      agents=$(echo "$team_line" | sed 's/.*| //' | sed 's/ |$//' | xargs)
-    fi
+echo "Trouvé $count US. Création des issues..."
+echo ""
 
-    # Construire le body de l'issue
-    body="## Description
+# Deuxième pass : créer les issues dans l'ordre
+for us_num in "${us_order[@]}"; do
+  us_title="${us_titles[$us_num]}"
+  us_desc="${us_descs[$us_num]}"
+  us_priority="${us_priorities[$us_num]}"
+  us_dep="${us_deps[$us_num]:-}"
+
+  echo "Création de l'issue: [US-$us_num] $us_title"
+
+  # Lire l'équipe assignée depuis le tableau dans project.md
+  team_line=$(grep -E "^\| US-0?$us_num " "$PROJECT_FILE" || echo "")
+  agents=""
+  if [ -n "$team_line" ]; then
+    agents=$(echo "$team_line" | sed 's/.*| //' | sed 's/ |$//' | xargs)
+  fi
+
+  # Construire la section dépendances
+  dep_section="Aucune — peut démarrer immédiatement"
+  if [ -n "$us_dep" ]; then
+    dep_section=""
+    # Parser les dépendances (format: après:US-XX, partage:US-YY, enrichit:US-ZZ)
+    IFS=',' read -ra dep_items <<< "$us_dep"
+    for dep_item in "${dep_items[@]}"; do
+      dep_item=$(echo "$dep_item" | xargs)
+      dep_type=$(echo "$dep_item" | cut -d: -f1)
+      dep_target=$(echo "$dep_item" | cut -d: -f2 | sed 's/US-//' | xargs)
+
+      # Récupérer le numéro d'issue GitHub si déjà créé
+      dep_issue_ref=""
+      if [ -n "${issue_numbers[$dep_target]:-}" ]; then
+        dep_issue_ref="#${issue_numbers[$dep_target]}"
+      else
+        dep_issue_ref="[US-$dep_target]"
+      fi
+
+      dep_title="${us_titles[$dep_target]:-Inconnue}"
+
+      case "$dep_type" in
+        "après")
+          dep_section="${dep_section}- **Bloquée par** : $dep_issue_ref ([US-$dep_target] $dep_title) — type: après
+"
+          ;;
+        "partage")
+          dep_section="${dep_section}- **Partage le scope avec** : $dep_issue_ref ([US-$dep_target] $dep_title) — type: partage
+"
+          ;;
+        "enrichit")
+          dep_section="${dep_section}- **Enrichit** : $dep_issue_ref ([US-$dep_target] $dep_title) — type: enrichit
+"
+          ;;
+        *)
+          dep_section="${dep_section}- **Lié à** : $dep_issue_ref ([US-$dep_target] $dep_title) — type: $dep_type
+"
+          ;;
+      esac
+    done
+  fi
+
+  # Construire le body de l'issue
+  body="## Description
 
 $us_desc
+
+## Dépendances
+
+$dep_section
 
 ## Équipe agentique assignée
 
@@ -78,25 +156,49 @@ $agents
 
 $us_priority"
 
-    # Créer l'issue
-    gh issue create \
-      --title "[US-$us_num] $us_title" \
-      --body "$body" \
-      --label "task" \
-      --label "$us_priority" \
-      2>/dev/null && echo "  → Issue créée" || echo "  → Erreur lors de la création"
+  # Créer l'issue
+  issue_url=$(gh issue create \
+    --title "[US-$us_num] $us_title" \
+    --body "$body" \
+    --label "task" \
+    --label "$us_priority" \
+    2>/dev/null || echo "")
 
-    count=$((count + 1))
+  if [ -n "$issue_url" ]; then
+    # Extraire le numéro d'issue depuis l'URL
+    issue_num=$(echo "$issue_url" | grep -oE '[0-9]+$')
+    issue_numbers["$us_num"]="$issue_num"
+    echo "  → Issue #$issue_num créée"
+  else
+    echo "  → Erreur lors de la création"
   fi
-done < "$PROJECT_FILE"
+done
 
-if [ "$count" -eq 0 ]; then
-  echo "Aucune US trouvée dans $PROJECT_FILE."
-  echo "Format attendu: - [US-XX] Titre | Description | Priorité"
-else
-  echo ""
-  echo "$count issue(s) créée(s)."
+echo ""
+echo "$count issue(s) créée(s)."
+
+# Afficher le graphe de dépendances
+echo ""
+echo "========================================="
+echo "  GRAPHE DE DÉPENDANCES"
+echo "========================================="
+has_deps=false
+for us_num in "${us_order[@]}"; do
+  us_dep="${us_deps[$us_num]:-}"
+  issue_ref="${issue_numbers[$us_num]:-?}"
+  if [ -n "$us_dep" ]; then
+    has_deps=true
+    dep_sources=$(echo "$us_dep" | grep -oE 'US-[0-9]+' | tr '\n' ', ' | sed 's/,$//')
+    echo "  $dep_sources ──→ US-$us_num (#$issue_ref)"
+  else
+    echo "  US-$us_num (#$issue_ref) — indépendante"
+  fi
+done
+
+if [ "$has_deps" = false ]; then
+  echo "  Aucune dépendance déclarée — toutes les US sont indépendantes"
 fi
+echo "========================================="
 
 echo ""
 echo "Voir les issues: gh issue list"
