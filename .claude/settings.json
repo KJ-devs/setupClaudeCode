@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm run build)",
+      "Bash(npm run test *)",
+      "Bash(npm test *)",
+      "Bash(npm run lint *)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(gh issue *)",
+      "Bash(gh label *)",
+      "Bash(bash scripts/*)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.local)",
+      "Read(.env.production)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/reinject-context.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Setup Claude Code chargé. Skills disponibles : /architect, /developer, /tester, /reviewer, /stabilizer, /init-project, /next-feature'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/protect-files.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "L'utilisateur a-t-il demandé d'implémenter une feature ou de modifier du code ? Si oui, vérifie que le stabilizer a été mentionné ou que les checks de stabilité (build, tests, lint) ont été exécutés. Si les checks n'ont pas été faits et qu'il y a eu des modifications de code significatives, réponds {\"ok\": false, \"reason\": \"Lance /stabilizer avant de terminer\"}. Si les checks ont été faits ou si la demande ne concernait pas du code, réponds {\"ok\": true}."
+          }
+        ]
+      }
+    ]
+  }
+}
