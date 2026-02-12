@@ -12,6 +12,7 @@ Contexte du projet : @project.md
 - **YOU MUST** utiliser l'équipe agentique assignée à chaque US
 - **YOU MUST** faire des commits au format `type(scope): description` (ex: `feat(publicapi): add pagination`)
 - **YOU MUST** nommer les branches au format `type/scope/description-courte` (ex: `feat/dashboard/add-filters`)
+- **YOU MUST** nommer les PR au format `type(scope): description` (même format que les commits)
 
 ## Skills disponibles
 
