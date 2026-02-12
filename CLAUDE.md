@@ -10,7 +10,8 @@ Contexte du projet : @project.md
 - **YOU MUST** travailler sur une seule feature à la fois
 - **YOU MUST** nettoyer le contexte (`/compact`) entre chaque feature
 - **YOU MUST** utiliser l'équipe agentique assignée à chaque US
-- **YOU MUST** faire des commits atomiques (un commit = un changement logique)
+- **YOU MUST** faire des commits au format `type(scope): description` (ex: `feat(publicapi): add pagination`)
+- **YOU MUST** nommer les branches au format `type/scope/description-courte` (ex: `feat/dashboard/add-filters`)
 
 ## Skills disponibles
 
