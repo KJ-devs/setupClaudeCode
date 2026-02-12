@@ -13,7 +13,13 @@ Contexte du projet : @project.md
 - **YOU MUST** faire des commits au format `type(scope): description` (ex: `feat(publicapi): add pagination`)
 - **YOU MUST** nommer les branches au format `type/scope/description-courte` (ex: `feat/dashboard/add-filters`)
 - **YOU MUST** nommer les PR au format `type(scope): description` (même format que les commits)
-- **YOU MUST NOT** faire de `git push` — commit uniquement, l'utilisateur push manuellement
+- **YOU MUST** utiliser `rebase` — JAMAIS `merge` pour intégrer les changements de `main`
+- **YOU MUST** créer la branche sur GitHub dès le début (`git push -u origin <branch>`)
+- **YOU MUST** créer une PR via `gh pr create` après stabilisation
+- **YOU MUST** lancer `bash scripts/stability-check.sh` AVANT tout push
+- **YOU MUST** re-lancer le stability check APRÈS chaque rebase
+- **YOU MUST NOT** merger une PR si le stability check échoue
+- **YOU MUST NOT** utiliser `git push --force` — utilise `--force-with-lease` uniquement
 
 ## Skills disponibles
 
@@ -30,17 +36,33 @@ Contexte du projet : @project.md
 ## Commandes
 
 ```bash
-npm run build          # Build
-npm test               # Tests
-npm run lint           # Lint
-npx tsc --noEmit       # Type check
-bash scripts/stability-check.sh  # Check complet
-gh issue list          # Voir les issues
+npm run build                      # Build
+npm test                           # Tests
+npm run lint                       # Lint
+npx tsc --noEmit                   # Type check
+bash scripts/stability-check.sh    # Check complet de stabilité
+bash scripts/pre-merge-check.sh    # Vérification pré-merge d'une branche
+gh issue list                      # Voir les issues
+gh pr list                         # Voir les PRs ouvertes
+gh pr view <numero>                # Détail d'une PR
 ```
 
 ## Workflow
 
 1. `/init-project` — Crée les issues GitHub depuis project.md
 2. `/next-feature` — Pour chaque US (par priorité) :
-   assign team → in-progress → implement → stabilize → done → clean context
+   create branch → push remote → in-progress → implement (rebase régulier) → stabilize → rebase final → push → PR → done → clean context
 3. Répète 2 jusqu'à ce que toutes les US soient done
+
+## Stratégie Git
+
+```
+main ─────────────────────────────────────────────
+  │                                        ↑
+  └── feat/scope/feature ──── rebase ──── PR ── squash merge ── delete branch
+```
+
+- **Rebase only** : `git fetch origin main && git rebase origin/main`
+- **Push** : `git push --force-with-lease origin <branch>`
+- **PR** : `gh pr create --base main`
+- **Après merge** : vérifier que main est stable
