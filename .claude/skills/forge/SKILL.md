@@ -14,7 +14,10 @@ Tu es le **Team Lead** du projet. Tu orchestre une équipe d'agents pour livrer 
 ## Contexte projet
 !`head -20 project.md 2>/dev/null`
 
-## Équipe disponible
+## Agents disponibles
+!`for skill in .claude/skills/*/SKILL.md; do name=$(grep '^name:' "$skill" | head -1 | sed 's/name: *//'); desc=$(grep '^description:' "$skill" | head -1 | sed 's/description: *//; s/"//g'); [ -n "$name" ] && echo "  /$name — $desc"; done 2>/dev/null`
+
+## Équipe et règles du projet
 @.claude/team.md
 
 ---
@@ -50,36 +53,38 @@ Tu analyses la US **toi-même** avant de déléguer. C'est ton rôle de Team Lea
 
 ### 1.2 Choisir l'équipe
 
-Sélectionne les agents en fonction du type (ne pas appliquer la même équipe à tout) :
+**Priorité** : utilise les agents listés dans le body de l'issue (section "Équipe agentique").
+Ces agents ont été auto-générés par `/init-project` et sont spécialisés pour ce projet.
 
-| Type | Équipe |
-|------|--------|
-| Feature complexe (nouvelle) | architect → developer → tester → reviewer → stabilizer |
-| Feature simple | developer → tester → stabilizer |
-| Bug fix | developer → tester → stabilizer |
-| Refactoring | architect → developer → reviewer → stabilizer |
-| Config / DevOps | architect → developer → stabilizer |
+**Si l'issue ne spécifie pas d'équipe** → détermine les agents nécessaires :
+1. Lis les agents disponibles (listés dans la section "Agents disponibles" ci-dessus)
+2. Sélectionne les agents pertinents pour le scope de l'US
+3. Ajoute toujours `stabilizer` en dernier, `reviewer` si US critique
 
-**Override** : si l'issue body spécifie une équipe, utilise celle-là.
+**Ordre d'exécution** :
+- Les agents de type "architect" / "db-architect" → en premier (planification)
+- Les agents de type "*-dev" → ensuite (implémentation)
+- Les agents de type "*-tester" → après l'implémentation
+- `reviewer` → après les tests
+- `stabilizer` → toujours en dernier
 
 ### 1.3 Décomposer en sous-tâches
 
 Crée un plan de sous-tâches avec **TodoWrite**. Chaque sous-tâche doit être :
 - Concrète et vérifiable
-- Assignée à un agent précis
+- Assignée à un agent précis (utilise les vrais noms d'agents du projet)
 - Ordonnée logiquement
 
-Exemple de décomposition :
+Exemple de décomposition (adapte les agents aux vrais agents du projet) :
 ```
-1. [architect] Analyser et planifier l'implémentation
-2. [developer] Créer les types et interfaces
-3. [developer] Implémenter la logique métier
-4. [developer] Implémenter les routes/composants
-5. [tester] Écrire les tests unitaires
-6. [tester] Écrire les tests d'intégration
-7. [reviewer] Revue de code qualité + sécurité
-8. [developer] Corriger les issues de la revue   ← feedback loop
-9. [stabilizer] Vérification complète build/test/lint
+1. [db-architect] Concevoir le schéma de données
+2. [api-dev] Créer les endpoints et la validation
+3. [frontend-dev] Implémenter les pages et composants
+4. [unit-tester] Écrire les tests unitaires
+5. [e2e-tester] Écrire les tests E2E
+6. [reviewer] Revue de code qualité + sécurité
+7. [api-dev] Corriger les issues de la revue    ← feedback loop
+8. [stabilizer] Vérification complète build/test/lint
 ```
 
 ---
@@ -105,53 +110,55 @@ Exécute les agents **dans l'ordre** mais avec des **boucles de correction**.
 > Après chaque agent, **évalue le résultat** avant de passer au suivant.
 > Si le résultat n'est pas satisfaisant → **renvoie** à l'agent approprié.
 
-### 3.1 — Architect (si assigné)
+### 3.1 — Agents de planification (si assignés : architect, db-architect...)
 
-Utilise le skill architect pour obtenir un plan :
+Utilise le skill de planification pour obtenir un plan.
 
-**Input** : description de l'US, code existant
+**Input** : description de l'US, code existant, critères d'acceptance
 **Output attendu** : plan structuré avec fichiers, sous-tâches, risques
 
 **Évaluation Team Lead** :
 - Le plan couvre-t-il tous les critères d'acceptance ? Si non → demande des précisions
 - Les risques sont-ils identifiés ? Si critique → alerter l'utilisateur
 
-### 3.2 — Developer
+### 3.2 — Agents de développement (*-dev, fullstack-dev, auth-dev, etc.)
 
-Implémente selon le plan. Commits atomiques. Rebase régulier.
+Exécute chaque agent dev **dans l'ordre** de la décomposition.
+Chaque agent travaille dans son domaine d'expertise.
 
 ```bash
 # Rebase régulier pendant le dev
 git fetch origin main && git rebase origin/main
 ```
 
-**Évaluation Team Lead après le developer** :
+**Évaluation Team Lead après chaque agent dev** :
 ```bash
-# Quick check : est-ce que ça compile au moins ?
+# Quick check : est-ce que ça compile ?
 npx tsc --noEmit 2>&1 | tail -20
 ```
-- Si erreurs de compilation → **renvoyer au developer** avec les erreurs spécifiques
-- Ne PAS passer au tester si le code ne compile pas
+- Si erreurs de compilation → **renvoyer à l'agent dev** avec les erreurs
+- Ne PAS passer aux tests si le code ne compile pas
 
-### 3.3 — Tester (si assigné)
+### 3.3 — Agents de test (*-tester, unit-tester, e2e-tester...)
 
-Écrit et exécute les tests.
+Chaque agent de test travaille dans son scope.
 
-**Évaluation Team Lead après le tester** :
+**Évaluation Team Lead après les tests** :
 ```bash
 npm test 2>&1 | tail -30
 ```
 
 **Feedback loop si tests échouent** :
 1. Identifie si c'est un bug dans le code ou dans le test
-2. Si bug dans le code → **renvoie au developer** avec le détail de l'échec
-3. Le developer corrige → **re-lance le tester** pour vérifier
+2. Si bug dans le code → **renvoie à l'agent dev concerné** avec le détail
+3. L'agent dev corrige → **re-lance le tester**
 4. Répète jusqu'à ce que tous les tests passent
 5. **Maximum 3 itérations** — au-delà, alerter l'utilisateur
 
 ### 3.4 — Reviewer (si assigné)
 
-Revue de code qualité + sécurité.
+Revue de code qualité + sécurité. Le reviewer lit les règles du projet
+(`.claude/rules/clean-code.md`, `.claude/rules/architecture.md`) et vérifie leur respect.
 
 **Évaluation Team Lead après le reviewer** :
 
@@ -160,8 +167,8 @@ Le reviewer produit un rapport avec :
 - **Suggestions** (nice to have)
 
 **Feedback loop si problèmes critiques** :
-1. Envoie les problèmes critiques au **developer** pour correction
-2. Le developer corrige → re-lance le **tester** (regression check)
+1. Envoie les problèmes critiques **à l'agent dev concerné** pour correction
+2. L'agent corrige → re-lance les **tests** (regression check)
 3. Optionnel : re-lance le **reviewer** sur les fichiers modifiés
 4. **Maximum 2 itérations** de review
 

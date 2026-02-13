@@ -25,16 +25,30 @@ Contexte du projet : @project.md
 
 ## Skills disponibles
 
+### Skills core (toujours présents)
+
 | Skill | Usage |
 |-------|-------|
-| `/init-project` | Initialise le projet : lit project.md, crée les issues GitHub |
-| `/forge` | **Team Lead** : décompose une US, délègue, gère les feedback loops, livre stable |
-| `/next-feature` | Pipeline linéaire simple (pour les features simples) |
+| `/init-project` | **Setup automatique** : analyse le projet, brainstorm les US, génère agents + règles + issues |
+| `/forge` | **Team Lead** : décompose une US, délègue aux agents spécialisés, feedback loops, livre stable |
+| `/next-feature` | Pipeline linéaire simple (alternative à /forge pour les features simples) |
+| `/reviewer` | Revue de code qualité + sécurité |
+| `/stabilizer` | Vérifie build + tests + lint + type-check |
+
+### Skills générés par /init-project (spécifiques au projet)
+
+Les agents spécialisés sont **auto-générés** en fonction de la stack et des US.
+Exemples : `/frontend-dev`, `/api-dev`, `/db-architect`, `/e2e-tester`...
+
+Après `/init-project`, consulte `.claude/team.md` pour voir les agents disponibles.
+
+### Skills fallback (génériques, utilisés si pas d'agents générés)
+
+| Skill | Usage |
+|-------|-------|
 | `/architect` | Planifie l'architecture d'une feature |
 | `/developer` | Implémente une feature |
 | `/tester` | Écrit et lance les tests |
-| `/reviewer` | Revue de code qualité + sécurité |
-| `/stabilizer` | Vérifie build + tests + lint + type-check |
 
 ## Commandes
 
@@ -47,6 +61,8 @@ bash scripts/stability-check.sh    # Check complet de stabilité
 bash scripts/pre-merge-check.sh    # Vérification pré-merge d'une branche
 bash scripts/check-us-eligibility.sh --list     # US éligibles (dépendances vérifiées)
 bash scripts/check-us-eligibility.sh <numero>   # Vérifier une US spécifique
+bash scripts/search-skills.sh --stack           # Chercher des skills communautaires
+bash scripts/install-skill.sh <owner/repo>      # Installer un skill depuis GitHub
 gh issue list                      # Voir les issues
 gh pr list                         # Voir les PRs ouvertes
 gh pr view <numero>                # Détail d'une PR
@@ -54,7 +70,7 @@ gh pr view <numero>                # Détail d'une PR
 
 ## Workflow
 
-1. `/init-project` — Crée les issues GitHub depuis project.md
+1. `/init-project` — Analyse le projet → brainstorm → génère agents + règles → crée les issues
 2. `/forge` — Pour chaque US (par priorité) :
    analyse → décompose → délègue aux agents → feedback loops → stabilize → PR → done → clean context
 3. Répète 2 jusqu'à ce que toutes les US soient done

@@ -73,6 +73,8 @@ cp "$SETUP_DIR/scripts/create-issues.sh" "$TARGET_DIR/scripts/create-issues.sh"
 cp "$SETUP_DIR/scripts/stability-check.sh" "$TARGET_DIR/scripts/stability-check.sh"
 cp "$SETUP_DIR/scripts/pre-merge-check.sh" "$TARGET_DIR/scripts/pre-merge-check.sh"
 cp "$SETUP_DIR/scripts/check-us-eligibility.sh" "$TARGET_DIR/scripts/check-us-eligibility.sh"
+cp "$SETUP_DIR/scripts/search-skills.sh" "$TARGET_DIR/scripts/search-skills.sh"
+cp "$SETUP_DIR/scripts/install-skill.sh" "$TARGET_DIR/scripts/install-skill.sh"
 chmod +x "$TARGET_DIR/scripts/"*.sh
 
 # [5/8] GitHub templates et workflows
@@ -123,7 +125,7 @@ echo "  .claude/settings.json  - Hooks et permissions"
 echo "  .claude/skills/        - 8 skills (forge, architect, developer, tester, reviewer, stabilizer, init-project, next-feature)"
 echo "  .claude/hooks/         - protect-files, reinject-context"
 echo "  .claude/rules/         - stability, commits, code-style"
-echo "  scripts/               - create-issues, stability-check, pre-merge-check, check-us-eligibility"
+echo "  scripts/               - create-issues, stability-check, pre-merge-check, check-us-eligibility, search-skills, install-skill"
 echo "  .github/               - Issue templates, Claude CI workflow"
 echo "  .mcp.json              - Config MCP servers"
 echo ""
