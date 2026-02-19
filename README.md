@@ -1,92 +1,92 @@
 # Setup Claude Code
 
-Template de démarrage de projet avec Claude Code.
-Utilise les features officielles : **Skills**, **Hooks**, **Rules**, **MCP**, et **GitHub Actions**.
+Project starter template for Claude Code.
+Uses official features: **Skills**, **Hooks**, **Rules**, **MCP**, and **GitHub Actions**.
 
 ## Quick Start
 
 ```bash
-# 1. Clone ce repo
+# 1. Clone this repo
 git clone https://github.com/KJ-devs/setupClaudeCode.git
 
-# 2. Copie le setup dans ton projet
-bash setupClaudeCode/scripts/setup.sh ~/mon-projet
+# 2. Copy the setup into your project
+bash setupClaudeCode/scripts/setup.sh ~/my-project
 
-# 3. Remplis project.md
-cd ~/mon-projet
-# Édite project.md avec tes US, ta stack, tes critères de stabilité
+# 3. Fill in project.md
+cd ~/my-project
+# Edit project.md with your user stories, stack, and stability criteria
 
-# 4. Lance Claude Code
-# Tape : /init-project
-# Puis : /next-feature (pour chaque US)
+# 4. Launch Claude Code
+# Type: /init-project
+# Then: /next-feature (for each user story)
 ```
 
-## Ce que fait le setup
+## What the setup does
 
-1. **Équipe agentique** via Skills — 5 agents spécialisés activables par `/architect`, `/developer`, `/tester`, `/reviewer`, `/stabilizer`
-2. **Gestion des US sur GitHub** — Issues avec labels `task` / `in-progress` / `done`
-3. **Stabilisation automatique** — Hook `Stop` qui vérifie que les checks ont été lancés
-4. **Features une par une** — `/next-feature` dépile, implémente, stabilise, et nettoie le contexte
-5. **Protection des fichiers sensibles** — Hook `PreToolUse` bloque l'édition de `.env`, lockfiles, `.git/`
-6. **Réinjection de contexte** — Hook `SessionStart` réinjecte project.md après compaction
-7. **Rules modulaires** — Règles de stabilité, commits, et code style activées par path
+1. **Agentic team** via Skills — 5 specialized agents activatable via `/architect`, `/developer`, `/tester`, `/reviewer`, `/stabilizer`
+2. **User story management on GitHub** — Issues with `task` / `in-progress` / `done` labels
+3. **Automatic stabilization** — `Stop` hook that verifies checks have been run
+4. **One feature at a time** — `/next-feature` picks, implements, stabilizes, and clears the context
+5. **Sensitive file protection** — `PreToolUse` hook blocks editing of `.env`, lockfiles, `.git/`
+6. **Context re-injection** — `SessionStart` hook re-injects project.md after compaction
+7. **Modular rules** — Stability, commit, and code style rules activated by path
 
 ## Structure
 
 ```
-├── CLAUDE.md                            # Instructions concises (imports project.md)
-├── project.md                           # Contexte du projet (A REMPLIR)
-├── CLAUDE.local.md                      # État de session local (gitignored)
+├── CLAUDE.md                            # Concise instructions (imports project.md)
+├── project.md                           # Project context (TO BE FILLED IN)
+├── CLAUDE.local.md                      # Local session state (gitignored)
 ├── .gitignore
-├── .mcp.json                            # Config MCP servers (team-shared)
+├── .mcp.json                            # MCP server config (team-shared)
 ├── .claude/
 │   ├── settings.json                    # Hooks + permissions
 │   ├── skills/
-│   │   ├── architect/SKILL.md           # /architect — planification
-│   │   ├── developer/SKILL.md           # /developer — implémentation
+│   │   ├── architect/SKILL.md           # /architect — planning
+│   │   ├── developer/SKILL.md           # /developer — implementation
 │   │   ├── tester/SKILL.md              # /tester — tests
-│   │   ├── reviewer/SKILL.md            # /reviewer — revue de code
+│   │   ├── reviewer/SKILL.md            # /reviewer — code review
 │   │   ├── stabilizer/SKILL.md          # /stabilizer — build+tests+lint
 │   │   ├── init-project/SKILL.md        # /init-project — bootstrap
-│   │   └── next-feature/SKILL.md        # /next-feature — workflow complet
+│   │   └── next-feature/SKILL.md        # /next-feature — full workflow
 │   ├── hooks/
-│   │   ├── protect-files.sh             # Bloque l'édition de fichiers sensibles
-│   │   └── reinject-context.sh          # Réinjecte le contexte après compaction
+│   │   ├── protect-files.sh             # Blocks editing of sensitive files
+│   │   └── reinject-context.sh          # Re-injects context after compaction
 │   ├── rules/
-│   │   ├── stability.md                 # Règles de stabilité (path: src/**)
-│   │   ├── commits.md                   # Conventions de commits
-│   │   └── code-style.md               # Style de code
-│   ├── team.md                          # Référence de l'équipe agentique
-│   └── workflow.md                      # Détail du workflow séquentiel
+│   │   ├── stability.md                 # Stability rules (path: src/**)
+│   │   ├── commits.md                   # Commit conventions
+│   │   └── code-style.md               # Code style
+│   ├── team.md                          # Agentic team reference
+│   └── workflow.md                      # Sequential workflow details
 ├── scripts/
-│   ├── setup.sh                         # Bootstrap dans un nouveau projet
-│   ├── create-issues.sh                 # Crée les issues GitHub
-│   └── stability-check.sh              # Check complet de stabilité
+│   ├── setup.sh                         # Bootstrap into a new project
+│   ├── create-issues.sh                 # Creates GitHub issues
+│   └── stability-check.sh              # Full stability check
 └── .github/
-    ├── ISSUE_TEMPLATE/user-story.md     # Template d'issue US
-    └── workflows/claude.yml             # CI: Claude Code sur @claude mentions
+    ├── ISSUE_TEMPLATE/user-story.md     # User story issue template
+    └── workflows/claude.yml             # CI: Claude Code on @claude mentions
 ```
 
 ## Skills
 
-| Skill | Rôle | Invocation |
+| Skill | Role | Invocation |
 |-------|------|-----------|
-| **architect** | Analyse, planifie, découpe en sous-tâches | `/architect <description>` |
-| **developer** | Implémente le code | `/developer <description>` |
-| **tester** | Écrit et lance les tests | `/tester <description>` |
-| **reviewer** | Revue qualité + sécurité (read-only) | `/reviewer <scope>` |
+| **architect** | Analyzes, plans, breaks down into sub-tasks | `/architect <description>` |
+| **developer** | Implements the code | `/developer <description>` |
+| **tester** | Writes and runs tests | `/tester <description>` |
+| **reviewer** | Quality + security review (read-only) | `/reviewer <scope>` |
 | **stabilizer** | Build + Tests + Lint + Type-check | `/stabilizer` |
-| **init-project** | Crée les issues GitHub depuis project.md | `/init-project` |
-| **next-feature** | Dépile la prochaine US avec le workflow complet | `/next-feature` |
+| **init-project** | Creates GitHub issues from project.md | `/init-project` |
+| **next-feature** | Picks the next user story with the full workflow | `/next-feature` |
 
 ## Hooks
 
-| Hook | Event | Rôle |
+| Hook | Event | Role |
 |------|-------|------|
-| **protect-files** | `PreToolUse` (Edit/Write) | Bloque `.env`, lockfiles, `.git/` |
-| **reinject-context** | `SessionStart` (compact) | Réinjecte project.md + état des issues |
-| **startup-banner** | `SessionStart` (startup) | Affiche les skills disponibles |
-| **stability-reminder** | `Stop` | Rappelle de lancer /stabilizer si du code a changé |
+| **protect-files** | `PreToolUse` (Edit/Write) | Blocks `.env`, lockfiles, `.git/` |
+| **reinject-context** | `SessionStart` (compact) | Re-injects project.md + issue state |
+| **startup-banner** | `SessionStart` (startup) | Displays available skills |
+| **stability-reminder** | `Stop` | Reminds to run /stabilizer if code has changed |
 
 ## Workflow
 
@@ -94,29 +94,29 @@ cd ~/mon-projet
 /init-project
     │
     ▼
-┌─────────────────────────────┐
-│  /next-feature              │
-│  1. Pick US (par priorité)  │
-│  2. Assign team             │
-│  3. → in-progress           │
-│  4. architect (si assigné)  │
-│  5. developer               │
-│  6. tester (si assigné)     │
-│  7. reviewer (si assigné)   │
-│  8. stabilizer              │
-│  9. → done                  │
-│  10. /compact (clean ctx)   │
-└──────────────┬──────────────┘
+┌─────────────────────────────────┐
+│  /next-feature                  │
+│  1. Pick user story (by prio.)  │
+│  2. Assign team                 │
+│  3. → in-progress               │
+│  4. architect (if assigned)     │
+│  5. developer                   │
+│  6. tester (if assigned)        │
+│  7. reviewer (if assigned)      │
+│  8. stabilizer                  │
+│  9. → done                      │
+│  10. /compact (clean ctx)       │
+└──────────────┬──────────────────┘
                │
                ▼
          [Next US or End]
 ```
 
-## Configuration avancée
+## Advanced Configuration
 
-### Ajouter un MCP server
+### Adding an MCP server
 
-Édite `.mcp.json` pour partager avec l'équipe :
+Edit `.mcp.json` to share with your team:
 
 ```json
 {
@@ -130,19 +130,19 @@ cd ~/mon-projet
 }
 ```
 
-### Ajouter une règle path-specific
+### Adding a path-specific rule
 
-Crée un fichier dans `.claude/rules/` :
+Create a file in `.claude/rules/`:
 
 ```markdown
 ---
 paths:
   - "src/api/**/*.ts"
 ---
-# Règles API
-- Tous les endpoints doivent valider les inputs
+# API Rules
+- All endpoints must validate inputs
 ```
 
-### Personnaliser le workflow
+### Customizing the workflow
 
-Édite `CLAUDE.local.md` (gitignored) pour tes préférences locales.
+Edit `CLAUDE.local.md` (gitignored) for your local preferences.
