@@ -1,94 +1,67 @@
 # Équipe Agentique
 
-Chaque agent a un rôle précis. On les active selon la feature en cours.
+> Ce fichier est **auto-généré** par `/init-project` en Phase 5.
+> Il documente les agents du projet. Ne le modifie pas manuellement.
 
-## Agents disponibles
+## Agents core (toujours présents)
 
-### `architect`
-**Rôle** : Planification et design technique
-**Quand l'utiliser** : Nouvelles features complexes, refactoring majeur, décisions d'architecture
-**Responsabilités** :
-- Analyser les requirements de la US
-- Proposer une architecture / un plan d'implémentation
-- Identifier les dépendances et risques
-- Découper en sous-tâches techniques
-
-**Prompt pattern** :
-> Tu es l'architecte du projet. Analyse la US suivante et propose un plan d'implémentation détaillé avec les fichiers à créer/modifier, les dépendances, et les risques identifiés.
-
----
-
-### `developer`
-**Rôle** : Implémentation du code
-**Quand l'utiliser** : Toujours — c'est l'agent principal de développement
-**Responsabilités** :
-- Écrire le code propre et fonctionnel
-- Respecter les conventions du projet
-- Créer les types, interfaces et modèles
-- Implémenter la logique métier
-
-**Prompt pattern** :
-> Tu es le développeur principal. Implémente la feature suivante en respectant la stack et les conventions du projet. Écris du code propre, typé, et testé.
-
----
-
-### `tester`
-**Rôle** : Écriture et exécution des tests
-**Quand l'utiliser** : Après chaque implémentation, pour les features critiques
-**Responsabilités** :
-- Écrire les tests unitaires
-- Écrire les tests d'intégration si nécessaire
-- Vérifier la couverture de test
-- Identifier les cas limites
-
-**Prompt pattern** :
-> Tu es le testeur du projet. Écris les tests pour la feature qui vient d'être implémentée. Couvre les cas nominaux, les cas limites, et les cas d'erreur.
-
----
-
-### `reviewer`
-**Rôle** : Revue de code et qualité
-**Quand l'utiliser** : Après l'implémentation, avant la stabilisation
-**Responsabilités** :
-- Vérifier la qualité du code
-- Détecter les bugs potentiels
-- Vérifier les bonnes pratiques de sécurité
-- Suggérer des améliorations
-
-**Prompt pattern** :
-> Tu es le reviewer du projet. Analyse le code qui vient d'être écrit. Vérifie la qualité, la sécurité, les performances, et les bonnes pratiques. Signale tout problème.
-
----
+### `forge`
+**Rôle** : Team Lead — orchestre les agents, décompose les US, gère les feedback loops
+**Toujours présent** : oui (c'est l'orchestrateur principal)
 
 ### `stabilizer`
-**Rôle** : Stabilisation et validation finale
-**Quand l'utiliser** : Après chaque feature, obligatoire avant de passer à la suivante
+**Rôle** : Quality gate — build, tests, lint, type-check
+**Toujours présent** : oui (toujours en dernier dans le pipeline)
 **Responsabilités** :
-- Lancer le build complet
-- Lancer tous les tests
-- Lancer le linter
-- Vérifier qu'il n'y a pas de régressions
-- Valider que l'app démarre correctement
+- Lancer les checks de stabilité (`bash scripts/stability-check.sh`)
+- Corriger les problèmes simples directement
+- Renvoyer les problèmes complexes à l'agent dev concerné
 
-**Prompt pattern** :
-> Tu es le stabilisateur. Lance tous les checks de stabilité (build, tests, lint, démarrage). Ne valide que si TOUT passe. Si quelque chose échoue, corrige-le avant de valider.
+### `reviewer`
+**Rôle** : Revue de code qualité + sécurité
+**Quand l'utiliser** : US de priorité haute ou touchant un domaine critique (auth, payment)
+**Responsabilités** :
+- Vérifier le respect des règles du projet (`.claude/rules/`)
+- Détecter les vulnérabilités (OWASP Top 10)
+- Produire un rapport structuré : critiques + suggestions
 
 ---
 
-## Composition d'équipe par type de feature
+## Agents spécialisés (générés par /init-project)
 
-| Type de feature | Équipe recommandée |
-|---|---|
-| Feature complexe (nouvelle) | architect → developer → tester → reviewer → stabilizer |
-| Feature simple | developer → tester → stabilizer |
-| Bug fix | developer → tester → stabilizer |
-| Refactoring | architect → developer → reviewer → stabilizer |
-| Documentation | developer → reviewer |
-| Config / DevOps | architect → developer → stabilizer |
+> Les agents ci-dessous sont créés automatiquement en fonction de la stack et des US du projet.
+> Chaque agent est un expert de son domaine dans la stack spécifique du projet.
+
+<!-- /init-project remplacera cette section avec les agents générés -->
+
+_Pas encore initialisé. Lance `/init-project` pour générer les agents spécialisés._
+
+---
 
 ## Règles d'équipe
 
 1. Le **stabilizer** intervient TOUJOURS en dernier
-2. L'**architect** intervient TOUJOURS en premier quand il est assigné
-3. Le **developer** est TOUJOURS présent
-4. L'ordre d'exécution suit l'ordre du tableau d'assignation
+2. Les agents de planification (architect, db-architect) interviennent TOUJOURS en premier
+3. Au moins un agent de développement (*-dev) est TOUJOURS présent
+4. L'ordre d'exécution suit l'ordre défini dans le body de l'issue GitHub
+5. Le **forge** évalue le résultat de chaque agent avant de passer au suivant
+
+## Types d'agents
+
+| Catégorie | Pattern de nom | Rôle |
+|-----------|---------------|------|
+| Planification | `*-architect`, `architect` | Analyse et plan avant implémentation |
+| Développement | `*-dev`, `fullstack-dev` | Implémentation du code |
+| Test | `*-tester`, `unit-tester`, `e2e-tester` | Écriture et exécution des tests |
+| Qualité | `reviewer` | Revue de code |
+| Validation | `stabilizer` | Quality gate finale |
+
+## Orchestration : `/forge` vs `/next-feature`
+
+| | `/next-feature` | `/forge` |
+|---|---|---|
+| **Modèle** | Pipeline linéaire | Team Lead avec feedback loops |
+| **Agents** | Agents génériques | Agents spécialisés du projet |
+| **Feedback** | Aucun | Boucles dev↔test, dev↔reviewer, stabilizer retry |
+| **Décision** | Ordre fixe | Team Lead adapte selon les résultats |
+| **Usage** | Features simples | Recommandé par défaut |

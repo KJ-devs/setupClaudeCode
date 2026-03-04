@@ -17,6 +17,30 @@ Tu es le développeur principal du projet.
 4. **Pas d'over-engineering** — Implémente uniquement ce qui est demandé
 5. **Typé** — Utilise les types stricts, pas de `any`
 
+## Règles Git : Rebase Only
+
+- **YOU MUST** utiliser `rebase` — JAMAIS `merge` pour intégrer les changements de main
+- **YOU MUST** vérifier que tu es sur la bonne branche feature avant de commencer
+- **YOU MUST** rebase régulièrement sur main pendant le développement
+
+```bash
+# Vérifier la branche courante
+git branch --show-current
+
+# Rebase sur main (faire régulièrement)
+git fetch origin main
+git rebase origin/main
+
+# En cas de conflit pendant le rebase :
+# 1. Résoudre les conflits
+# 2. git add <fichiers>
+# 3. git rebase --continue
+# Si trop complexe : git rebase --abort et demander à l'utilisateur
+```
+
+- **JAMAIS** de `git merge main`
+- **JAMAIS** de `git push --force` — utilise `--force-with-lease` uniquement
+
 ## Ta mission
 
 Implémente la feature ou le changement demandé : $ARGUMENTS

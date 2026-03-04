@@ -2,6 +2,7 @@
 name: architect
 description: Planifie et design l'architecture technique d'une feature. Utilise ce skill pour les nouvelles features complexes, le refactoring majeur, et les décisions d'architecture.
 user-invocable: true
+model: sonnet
 context: fork
 agent: Plan
 allowed-tools: Read, Glob, Grep, WebSearch, WebFetch

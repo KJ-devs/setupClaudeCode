@@ -9,6 +9,19 @@
       "Bash(npx tsc --noEmit)",
       "Bash(gh issue *)",
       "Bash(gh label *)",
+      "Bash(gh pr *)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(git rebase *)",
+      "Bash(git push *)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git merge-base *)",
+      "Bash(git rev-parse *)",
+      "Bash(git ls-remote *)",
       "Bash(bash scripts/*)"
     ],
     "deny": [
@@ -34,13 +47,23 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'Setup Claude Code chargé. Skills disponibles : /architect, /developer, /tester, /reviewer, /stabilizer, /init-project, /next-feature'",
+            "command": "echo 'Setup Claude Code chargé. Skills disponibles : /forge, /init-project, /next-feature, /architect, /developer, /tester, /reviewer, /stabilizer'",
             "timeout": 5
           }
         ]
       }
     ],
     "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/git-safety.sh",
+            "timeout": 5
+          }
+        ]
+      },
       {
         "matcher": "Edit|Write",
         "hooks": [
@@ -52,7 +75,28 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/auto-format.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/session-summary.sh",
+            "timeout": 15
+          }
+        ]
+      },
       {
         "hooks": [
           {

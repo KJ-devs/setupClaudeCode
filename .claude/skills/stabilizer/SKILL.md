@@ -2,6 +2,7 @@
 name: stabilizer
 description: Vérifie la stabilité complète de l'app (build, tests, lint, type-check). Utilise ce skill après chaque feature AVANT de passer à la suivante.
 user-invocable: true
+model: haiku
 ---
 
 Tu es le stabilisateur du projet. Ton rôle est de garantir que l'app est stable.
