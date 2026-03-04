@@ -329,8 +329,39 @@ Analyse la stack et les US pour créer les bons agents :
 
 ### 5.2 Créer les SKILL.md pour chaque agent
 
-Pour chaque agent, crée `.claude/skills/<agent-name>/SKILL.md` avec :
+Pour chaque agent, crée `.claude/skills/<agent-name>/SKILL.md` avec le bon frontmatter selon le **type d'agent** :
 
+#### Agents de planification / architecture (`*-architect`)
+```yaml
+---
+name: <agent-name>
+description: <description-spécifique-au-projet>
+user-invocable: true
+model: sonnet
+context: fork
+agent: Plan
+allowed-tools: Read, Glob, Grep, WebSearch, WebFetch
+---
+```
+→ `context: fork` + `agent: Plan` = read-only, ne modifie aucun fichier
+→ `model: sonnet` = qualité de raisonnement optimale pour la planification
+
+#### Agents de review / qualité (`*-reviewer`)
+```yaml
+---
+name: <agent-name>
+description: <description>. Read-only — ne modifie aucun fichier.
+user-invocable: true
+model: sonnet
+context: fork
+agent: Plan
+allowed-tools: Read, Glob, Grep
+---
+```
+→ Mêmes paramètres que les architectes (read-only, sonnet)
+→ **DOIT inclure les règles anti-hallucination** (voir ci-dessous)
+
+#### Agents de développement (`*-dev`)
 ```yaml
 ---
 name: <agent-name>
@@ -338,6 +369,33 @@ description: <description-spécifique-au-projet>
 user-invocable: true
 ---
 ```
+→ Pas de `context: fork` (ils modifient des fichiers)
+→ Pas de `model:` spécifié (utilise le modèle par défaut)
+
+#### Agents de test (`*-tester`)
+```yaml
+---
+name: <agent-name>
+description: <description-spécifique-au-projet>
+user-invocable: true
+---
+```
+→ Pas de `context: fork` (ils lancent des commandes et modifient des fichiers)
+
+#### Agents mécaniques / validation (`*-stabilizer`, `*-formatter`)
+```yaml
+---
+name: <agent-name>
+description: <description-spécifique-au-projet>
+user-invocable: true
+model: haiku
+---
+```
+→ `model: haiku` = optimisation coût pour les tâches mécaniques (lint, format, type-check)
+
+---
+
+#### Contenu obligatoire de chaque agent
 
 Le contenu de chaque agent DOIT inclure :
 1. **Contexte technique** : framework, langage, stack pertinente
@@ -346,6 +404,38 @@ Le contenu de chaque agent DOIT inclure :
 4. **Patterns à suivre** : idiomes spécifiques au framework
 5. **Anti-patterns à éviter** : erreurs courantes dans cette stack
 6. **Mission** : ce qu'on attend de l'agent (`$ARGUMENTS` pour la tâche)
+
+#### Règles anti-hallucination (obligatoires pour les agents reviewer)
+
+Tout agent de type review DOIT inclure cette section :
+
+```markdown
+## Anti-hallucination : VÉRIFIER AVANT D'AFFIRMER
+
+**Règle critique** : ne jamais affirmer qu'un pattern existe sans le vérifier.
+
+### Protocole de vérification
+
+Avant chaque suggestion :
+
+1. **Claims sur les patterns** → utilise `Grep` ou `Glob` pour vérifier
+   - Pattern > 10 occurrences = **Établi** → suggestion de conformité
+   - Pattern 3-10 occurrences = **Émergent** → demander confirmation
+   - Pattern < 3 occurrences = **Non établi** → ne pas imposer
+
+2. **Lire le fichier complet** avant de reviewer — jamais juste le diff
+
+3. **Marqueurs d'incertitude** :
+   - ❓ À vérifier : [affirmation qui nécessite confirmation]
+   - 💡 Suggestion : [amélioration optionnelle]
+   - 🔴 Must fix : [bug/sécurité critique, vérifié]
+
+### Classification de sévérité
+
+- 🔴 Must Fix (Bloquant) — Vulnérabilités, perte de données, échecs silencieux
+- 🟡 Should Fix (Important) — Violations SOLID/DRY, N+1, gestion d'erreurs manquante
+- 🟢 Can Skip (Optionnel) — Style, nommage mineur, documentation
+```
 
 **Chaque agent doit être un EXPERT de son domaine dans la stack du projet.** Il connaît les bonnes pratiques, les pièges, les patterns idiomatiques. Il n'est pas un développeur générique — il est spécialisé.
 
