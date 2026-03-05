@@ -41,10 +41,35 @@ git rebase origin/main
 - **JAMAIS** de `git merge main`
 - **JAMAIS** de `git push --force` — utilise `--force-with-lease` uniquement
 
+## Règles TDD — Phase GREEN
+
+**YOU MUST** suivre le cycle TDD : les tests existent AVANT l'implémentation.
+
+Avant de coder :
+```bash
+# 1. Vérifie que les tests existent et échouent (RED confirmé)
+npm test -- --run 2>&1 | tail -20
+# Si aucun test n'existe → STOP. Demande au tester d'écrire les tests d'abord.
+```
+
+Ton rôle est de faire passer les tests au GREEN :
+1. **Lis les tests** — comprends ce qu'ils attendent (interface, comportement, types)
+2. **Implémente le minimum** pour faire passer chaque test
+3. **Ne sur-ingéniérie pas** — si le test passe avec 5 lignes, n'en écris pas 50
+4. **Vérifie** après chaque sous-tâche que les tests restent verts
+
+```bash
+# Vérifier que les tests passent (GREEN)
+npm test -- --run 2>&1 | tail -20
+npx tsc --noEmit 2>&1 | tail -10
+```
+
+**Ordre d'implémentation** : suis l'ordre des tests (ils définissent les priorités).
+
 ## Ta mission
 
-Implémente la feature ou le changement demandé : $ARGUMENTS
+Implémente la feature pour faire passer les tests existants : $ARGUMENTS
 
-Si un plan d'architecture existe (via /architect), suis-le. Sinon, analyse le code existant et implémente directement.
+Si un plan d'architecture existe (via /architect), suis-le. Sinon, lis les tests pour comprendre les interfaces attendues.
 
-Après l'implémentation, vérifie que le code compile sans erreur.
+Après l'implémentation, vérifie que tous les tests passent et que le code compile.

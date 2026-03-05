@@ -61,10 +61,11 @@ Ces agents ont été auto-générés par `/init-project` et sont spécialisés p
 2. Sélectionne les agents pertinents pour le scope de l'US
 3. Ajoute toujours `stabilizer` en dernier, `reviewer` si US critique
 
-**Ordre d'exécution** :
-- Les agents de type "architect" / "db-architect" → en premier (planification)
-- Les agents de type "*-dev" → ensuite (implémentation)
-- Les agents de type "*-tester" → après l'implémentation
+**Ordre d'exécution (TDD obligatoire)** :
+- Les agents de type "architect" / "db-architect" → en premier (planification + design des interfaces)
+- Les agents de type "*-tester" → AVANT les devs (écriture des tests RED)
+- Les agents de type "*-dev" → implémentation pour faire passer les tests (GREEN)
+- Les agents de type "*-tester" → vérification que tous les tests passent
 - `reviewer` → après les tests
 - `stabilizer` → toujours en dernier
 
@@ -75,16 +76,18 @@ Crée un plan de sous-tâches avec **TodoWrite**. Chaque sous-tâche doit être 
 - Assignée à un agent précis (utilise les vrais noms d'agents du projet)
 - Ordonnée logiquement
 
-Exemple de décomposition (adapte les agents aux vrais agents du projet) :
+Exemple de décomposition TDD (adapte les agents aux vrais agents du projet) :
 ```
-1. [db-architect] Concevoir le schéma de données
-2. [api-dev] Créer les endpoints et la validation
-3. [frontend-dev] Implémenter les pages et composants
-4. [unit-tester] Écrire les tests unitaires
-5. [e2e-tester] Écrire les tests E2E
-6. [reviewer] Revue de code qualité + sécurité
-7. [api-dev] Corriger les issues de la revue    ← feedback loop
-8. [stabilizer] Vérification complète build/test/lint
+1. [db-architect]  Concevoir le schéma de données + interfaces TypeScript
+2. [unit-tester]   Écrire les tests backend qui ÉCHOUENT — RED
+3. [e2e-tester]    Écrire les tests Playwright qui ÉCHOUENT — RED
+4. [api-dev]       Implémenter pour faire passer les tests backend — GREEN
+5. [frontend-dev]  Implémenter pour faire passer les tests E2E — GREEN
+6. [unit-tester]   Vérifier que tous les tests backend passent
+7. [e2e-tester]    Vérifier que tous les tests Playwright passent
+8. [reviewer]      Revue de code qualité + sécurité
+9. [api-dev]       Corriger les issues critiques de la revue    ← feedback loop
+10. [stabilizer]   Vérification complète build/test/lint
 ```
 
 ---
@@ -121,10 +124,26 @@ Utilise le skill de planification pour obtenir un plan.
 - Le plan couvre-t-il tous les critères d'acceptance ? Si non → demande des précisions
 - Les risques sont-ils identifiés ? Si critique → alerter l'utilisateur
 
-### 3.2 — Agents de développement (*-dev, fullstack-dev, auth-dev, etc.)
+### 3.2 — Agents de test — Phase RED (*-tester, unit-tester, e2e-tester...)
+
+**AVANT tout développement**, les testers écrivent les tests qui ÉCHOUENT.
+
+**Input** : plan d'architecture (interfaces, contrats), critères d'acceptance
+**Output attendu** : tests écrits, compilant, mais en échec (RED confirmé)
+
+**Évaluation Team Lead après la phase RED** :
+```bash
+# Vérifier que les tests compilent mais échouent
+npm test -- --run 2>&1 | tail -20
+```
+- Tests compilent mais échouent → RED validé, passer au développement
+- Tests ne compilent pas → renvoyer au tester pour corriger la syntaxe
+- Tests passent déjà → la feature était déjà implémentée, investiguer
+
+### 3.3 — Agents de développement (*-dev, fullstack-dev, auth-dev, etc.) — Phase GREEN
 
 Exécute chaque agent dev **dans l'ordre** de la décomposition.
-Chaque agent travaille dans son domaine d'expertise.
+Chaque agent implémente le minimum pour faire passer ses tests.
 
 ```bash
 # Rebase régulier pendant le dev
@@ -133,29 +152,32 @@ git fetch origin main && git rebase origin/main
 
 **Évaluation Team Lead après chaque agent dev** :
 ```bash
-# Quick check : est-ce que ça compile ?
+# Quick check : est-ce que ça compile et les tests passent ?
 npx tsc --noEmit 2>&1 | tail -20
+npm test -- --run 2>&1 | tail -20
 ```
 - Si erreurs de compilation → **renvoyer à l'agent dev** avec les erreurs
-- Ne PAS passer aux tests si le code ne compile pas
+- Si tests toujours en échec → **renvoyer à l'agent dev** avec les tests qui échouent
+- Tous les tests passent → GREEN validé
 
-### 3.3 — Agents de test (*-tester, unit-tester, e2e-tester...)
+### 3.4 — Agents de test — Vérification finale (*-tester, unit-tester, e2e-tester...)
 
-Chaque agent de test travaille dans son scope.
+Vérification que tous les tests (nouveaux + existants) passent après l'implémentation.
 
-**Évaluation Team Lead après les tests** :
+**Évaluation Team Lead** :
 ```bash
-npm test 2>&1 | tail -30
+npm test -- --run 2>&1 | tail -30
+npx playwright test 2>&1 | tail -30   # si E2E Playwright
 ```
 
 **Feedback loop si tests échouent** :
-1. Identifie si c'est un bug dans le code ou dans le test
+1. Identifie si c'est un bug dans le code ou un test mal écrit
 2. Si bug dans le code → **renvoie à l'agent dev concerné** avec le détail
 3. L'agent dev corrige → **re-lance le tester**
 4. Répète jusqu'à ce que tous les tests passent
 5. **Maximum 3 itérations** — au-delà, alerter l'utilisateur
 
-### 3.4 — Reviewer (si assigné)
+### 3.5 — Reviewer (si assigné)
 
 Revue de code qualité + sécurité. Le reviewer lit les règles du projet
 (`.claude/rules/clean-code.md`, `.claude/rules/architecture.md`) et vérifie leur respect.
@@ -172,7 +194,7 @@ Le reviewer produit un rapport avec :
 3. Optionnel : re-lance le **reviewer** sur les fichiers modifiés
 4. **Maximum 2 itérations** de review
 
-### 3.5 — Stabilizer (toujours en dernier)
+### 3.6 — Stabilizer (toujours en dernier)
 
 ```bash
 bash scripts/stability-check.sh

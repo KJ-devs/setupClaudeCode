@@ -82,24 +82,32 @@ gh issue edit <numero> --add-label "in-progress" --remove-label "task"
 - Lis le body de l'issue pour trouver l'équipe assignée
 - Exécute chaque agent dans l'ordre défini
 
-### 5. Exécuter le pipeline d'agents
+### 5. Exécuter le pipeline d'agents (TDD obligatoire)
 
 **Si architect assigné :**
 - Analyse la US, propose un plan d'implémentation
-- Liste les fichiers à créer/modifier
+- Liste les fichiers à créer/modifier + définit les interfaces/contrats
 
-**developer (toujours) :**
-- Implémente selon le plan
+**tester — Phase RED (avant le developer) :**
+- Écrit les tests backend (BDD Given-When-Then) qui ÉCHOUENT
+- Écrit les tests Playwright E2E qui ÉCHOUENT
+- Commit : `test(scope): add failing tests for [feature] [RED]`
+- Vérification : `npm test` → les tests doivent échouer (RED confirmé)
+
+**developer (toujours) — Phase GREEN :**
+- Implémente le minimum pour faire passer les tests
 - Commits atomiques
 - **Rebase régulier** sur main pendant le développement :
   ```bash
   git fetch origin main
   git rebase origin/main
   ```
+- Vérification après chaque sous-tâche : `npm test -- --run`
 
-**Si tester assigné :**
-- Écris et lance les tests
-- Corrige si des tests échouent
+**tester — Vérification finale :**
+- Lance tous les tests (nouveaux + existants)
+- Corrige si des tests échouent (identifie bug code vs test mal écrit)
+- Commit : `test(scope): all tests passing for [feature] [GREEN]`
 
 **Si reviewer assigné :**
 - Revue de code

@@ -249,14 +249,28 @@ Le fichier DOIT contenir :
 
 ### 3.3 Testing (`.claude/rules/testing.md`)
 
-Génère des conventions de test **adaptées au framework de test** :
+Génère des conventions de test **TDD/BDD adaptées au framework de test détecté**.
 
 Le fichier DOIT contenir :
+
+- **Méthodologie TDD** : cycle Red → Green → Refactor (obligatoire)
+  - RED : écrire le test AVANT le code, le test doit échouer
+  - GREEN : implémenter le minimum pour faire passer le test
+  - REFACTOR : améliorer sans casser les tests
+- **Méthodologie BDD** : nommage Given-When-Then pour tous les tests
 - **Structure** : où placer les tests, convention de nommage des fichiers
-- **Conventions** : patterns (AAA, describe/it), nommage des tests
-- **Couverture** : cas nominaux, limites, erreurs à couvrir
-- **Mocks** : quand mocker, quand ne pas mocker
-- **Commandes** : scripts npm/yarn pour lancer les tests
+- **Frontend (Playwright)** : si Playwright détecté
+  - Tests E2E écrits AVANT l'implémentation des pages/composants
+  - Locators sémantiques (getByRole, getByLabel, getByText)
+  - Nommage : `Given [...], When [...], Then [...]`
+  - Pas de `waitForTimeout()`, pas de sélecteurs CSS fragiles
+- **Backend** : tests unitaires et d'intégration BDD
+  - Structure `describe > Given > it('should [...] when [...]')`
+  - Quoi mocker : DB (pour unitaires), APIs externes
+  - Quoi NE PAS mocker : logique métier interne
+- **Couverture minimale** : cas nominal + cas limites + cas d'erreur
+- **Commandes** : scripts npm/yarn pour lancer les tests (unit + e2e séparément)
+- **Ordre dans le pipeline** : tester écrit les tests AVANT developer (RED), developer implémente (GREEN), tester vérifie
 
 ### 3.4 Mettre à jour le stabilizer
 
@@ -404,6 +418,17 @@ Le contenu de chaque agent DOIT inclure :
 4. **Patterns à suivre** : idiomes spécifiques au framework
 5. **Anti-patterns à éviter** : erreurs courantes dans cette stack
 6. **Mission** : ce qu'on attend de l'agent (`$ARGUMENTS` pour la tâche)
+
+**Pour les agents `*-tester` et `e2e-tester`** : DOIT inclure explicitement :
+- La méthodologie TDD (Red-Green-Refactor) et BDD (Given-When-Then)
+- L'ordre dans le pipeline : écrire les tests AVANT l'implémentation
+- Pour e2e-tester avec Playwright : locators sémantiques, structure Given/When/Then
+- Pour unit-tester : structure `describe > Given > it('should [...] when [...]')`
+
+**Pour les agents `*-dev`** : DOIT inclure explicitement :
+- Règle TDD GREEN : implémenter pour faire passer les tests existants
+- Vérifier que les tests passent après chaque sous-tâche
+- Ne pas sur-ingénier : le minimum pour que les tests passent
 
 #### Règles anti-hallucination (obligatoires pour les agents reviewer)
 
